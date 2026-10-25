@@ -1,4 +1,4 @@
-import { START_DATE, PEOPLE, STAIRS_ORDER, BATHROOM_ORDER, person, addDays, nextWeekend, generateSchedule, scheduleThrough, monthView, nextTurns, calendarFile } from './schedule.js';
+import { START_DATE, PEOPLE, STAIRS_ORDER, BATHROOM_ORDER, person, addDays, nextWeekend, generateSchedule, scheduleThrough, calendarFile } from './schedule.js';
 
 const $ = (selector) => document.querySelector(selector);
 const now = new Date();
@@ -6,10 +6,9 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0'
 const activeWeekend = nextWeekend(today);
 const activeMonth = activeWeekend.slice(0, 7);
 let visibleMonth = activeMonth;
-let fullMonth = activeMonth;
 let selectedPerson = 'all';
-let theme = localStorage.getItem('tareas-tema') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-document.documentElement.setAttribute('data-theme', theme);
+let theme = document.documentElement.dataset.theme;
+const upcomingWeeks = scheduleThrough(addDays(activeWeekend, 7 * 7)).slice(-8);
 const dateFormat = (iso, options) => new Intl.DateTimeFormat('es-MX', { ...options, timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`));
 const capitalize = (text) => text[0].toUpperCase() + text.slice(1);
 const shortDate = (iso) => dateFormat(iso, { day: 'numeric', month: 'short' });
@@ -86,32 +85,25 @@ function renderRotations() {
   $('#balance-table').innerHTML = `<table class="balance-table"><thead><tr><th scope="col">Persona</th><th scope="col">Escaleras</th><th scope="col">Baño</th><th scope="col">Total</th></tr></thead><tbody>${PEOPLE.map(({ id, name }) => `<tr><th scope="row"><span class="person-cell">${avatar(id)}${name}</span></th><td>${totals[id].stairs}</td><td>${totals[id].bathroom}</td><td><strong>${totals[id].stairs + totals[id].bathroom}</strong></td></tr>`).join('')}</tbody></table>`;
 }
 
-function dayOfWeekLabel(index) {
-  return ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'][index];
-}
-
-function renderFullCalendar() {
-  const view = monthView(fullMonth);
-  $('#full-month-label').textContent = capitalize(dateFormat(`${fullMonth}-01`, { month: 'long', year: 'numeric' }));
-  $('#full-previous-month').disabled = fullMonth <= START_DATE.slice(0, 7);
-  $('#full-next-month').disabled = fullMonth >= '2100-12';
-
-  const header = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'].map((label) => `<div>${label}</div>`).join('');
-  const rows = view.weeks.map((week) => {
-    return week.map((day) => {
-      const cls = ['fc-day', !day.inMonth ? 'other' : '', day.iso === today ? 'today' : ''].filter(Boolean).join(' ');
-      const tasks = [];
-      if (day.week) {
-        if (day.week.stairs) tasks.push(`<span class="fc-task stairs" title="${person(day.week.stairs).name} · Escaleras">${person(day.week.stairs).initials} Escaleras</span>`);
-        if (day.week.bathroom) tasks.push(`<span class="fc-task bath${day.week.swap ? ' swap' : ''}" title="${person(day.week.bathroom).name} · Baño">${person(day.week.bathroom).initials} Baño${day.week.swap ? ' ⇄' : ''}</span>`);
-      }
-      return `<div class="${cls}" role="gridcell" aria-label="${day.display} ${day.inMonth ? '' : 'fuera de mes'}${tasks.length ? ' · ' + tasks.map(t => t.replace(/<[^>]*>/g, ' ').trim()).join(', ') : ''}">
-        <div class="fc-date">${day.display}</div>
-        ${day.inMonth ? tasks.join('') : '<div class="fc-empty"></div>'}
-      </div>`;
-    }).join('');
-  }).join('');
-  $('#full-calendar-grid').innerHTML = `<div class="fc-head">${header}</div>${rows}`;
+function renderReminder() {
+  const week = upcomingWeeks.find((item) => item.date === $('#share-weekend').value);
+  const message = [
+    '🏡 Casa en orden',
+    `Fin de semana: ${weekendRange(week.date)} de ${addDays(week.date, 1).slice(0, 4)}`,
+    '',
+    `🧹 Escaleras y pasillo: ${person(week.stairs).name}`,
+    'Barrer las escaleras y trapear el pasillo de arriba.',
+    '',
+    `🛁 Lavar el baño: ${person(week.bathroom).name}`,
+    ...(week.swap ? ['', `⇄ ${swapExplanation(week)}`] : []),
+    '',
+    'Pueden hacerlo el sábado o el domingo. ¡Gracias por cuidar la casa!',
+    '',
+    'Todos los turnos: https://angixs-zz.github.io/TareasHogar/',
+  ].join('\n');
+  $('#reminder-text').value = message;
+  $('#whatsapp-reminder').href = `https://wa.me/?text=${encodeURIComponent(message)}`;
+  $('#share-status').textContent = '';
 }
 
 function daysBetween(a, b) {
@@ -121,8 +113,8 @@ function daysBetween(a, b) {
 function renderNextTurns() {
   const grid = $('#next-turns-grid');
   grid.innerHTML = PEOPLE.map(({ id, name, color, initials }) => {
-    const turns = nextTurns(id, 24).filter((t) => addDays(t.date, 1) >= today);
-    const next = turns[0];
+    const week = upcomingWeeks.find((item) => item.stairs === id || item.bathroom === id);
+    const next = week && { date: week.date, task: week.stairs === id ? 'stairs' : 'bathroom', swap: week.stairs === id ? null : week.swap };
     if (!next) return '';
     const days = daysBetween(today, next.date);
     const label = next.task === 'stairs' ? 'Escaleras y pasillo' : 'Baño';
@@ -131,7 +123,7 @@ function renderNextTurns() {
       <span class="task-label">Próximo turno: ${label}</span>
       <h3>${name}</h3>
       <div class="date-big">${shortDate(next.date)}</div>
-      <div class="date-copy">${days === 0 ? '¡Hoy o mañana!' : days === 1 ? 'Mañana' : `En ${days} días`}</div>
+      <div class="date-copy">${days < 0 ? '¡Hoy, domingo!' : days === 0 ? '¡Hoy o mañana!' : days === 1 ? 'Mañana' : `En ${days} días`}</div>
       ${swap}
       <footer><span aria-hidden="true">📅</span>${next.task === 'stairs' ? 'Escaleras y pasillo' : 'Lavar el baño'}</footer>
     </article>`;
@@ -165,27 +157,35 @@ $('#download-button').addEventListener('click', () => {
 });
 $('#theme-toggle').addEventListener('click', () => {
   theme = theme === 'light' ? 'dark' : 'light';
-  localStorage.setItem('tareas-tema', theme);
+  try { localStorage.setItem('tareas-tema', theme); } catch {}
+  applyTheme();
+});
+function applyTheme() {
   document.documentElement.setAttribute('data-theme', theme);
   $('#theme-toggle').querySelector('.theme-icon').textContent = theme === 'dark' ? '☀️' : '🌙';
-});
-$('#theme-toggle').querySelector('.theme-icon').textContent = theme === 'dark' ? '☀️' : '🌙';
+  $('#theme-toggle').setAttribute('aria-label', theme === 'dark' ? 'Activar modo claro' : 'Activar modo oscuro');
+  $('#theme-toggle').setAttribute('aria-pressed', String(theme === 'dark'));
+  $('meta[name="theme-color"]').content = theme === 'dark' ? '#1e231b' : '#f7f7f2';
+}
+applyTheme();
 
-// Calendario mensual completo
-$('#full-previous-month').addEventListener('click', () => {
-  const [year, month] = fullMonth.split('-').map(Number);
-  fullMonth = new Date(Date.UTC(year, month - 2, 1)).toISOString().slice(0, 7);
-  renderFullCalendar();
+for (const week of upcomingWeeks) {
+  $('#share-weekend').add(new Option(`${weekendRange(week.date)} de ${addDays(week.date, 1).slice(0, 4)}`, week.date));
+}
+$('#share-weekend').addEventListener('change', renderReminder);
+$('#copy-reminder').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText($('#reminder-text').value);
+    $('#share-status').textContent = '¡Copiado! Ya puedes pegarlo en el grupo.';
+  } catch {
+    $('#reminder-text').focus();
+    $('#reminder-text').select();
+    $('#share-status').textContent = 'Seleccionamos el aviso. Usa Copiar en tu dispositivo o Ctrl/Cmd + C.';
+  }
 });
-$('#full-next-month').addEventListener('click', () => {
-  const [year, month] = fullMonth.split('-').map(Number);
-  fullMonth = new Date(Date.UTC(year, month, 1)).toISOString().slice(0, 7);
-  renderFullCalendar();
-});
-$('#full-print-button').addEventListener('click', () => window.print());
 
 renderUpcoming();
 renderCalendar();
-renderFullCalendar();
+renderReminder();
 renderNextTurns();
 renderRotations();

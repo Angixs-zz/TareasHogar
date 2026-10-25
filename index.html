@@ -7,6 +7,13 @@
   <meta name="description" content="El calendario de limpieza de nuestra casa. Turnos de fin de semana, un reparto justo y ninguna tarea doble.">
   <title>Casa en orden · Calendario de limpieza</title>
   <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <script>
+    // Aplicar el tema antes de pintar la página evita un destello claro.
+    let savedTheme;
+    try { savedTheme = localStorage.getItem('tareas-tema'); } catch {}
+    document.documentElement.dataset.theme = ['light', 'dark'].includes(savedTheme)
+      ? savedTheme : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  </script>
   <link rel="stylesheet" href="./styles.css">
   <script type="module" src="./app.js"></script>
 </head>
@@ -42,13 +49,21 @@
       <p class="download-hint" id="download-status" role="status"></p>
     </section>
 
-    <section class="calendar-section full-calendar-section" aria-labelledby="full-calendar-heading">
-      <div class="section-heading"><div><p class="eyebrow">CALENDARIO COMPLETO</p><h2 id="full-calendar-heading">Vista mensual de turnos</h2></div><button class="text-button" id="full-print-button"><span aria-hidden="true">▤</span> Imprimir mes</button></div>
-      <div class="full-calendar-panel">
-        <div class="full-calendar-toolbar"><h3 id="full-month-label"></h3><div class="full-calendar-nav"><button class="icon-button" id="full-previous-month" aria-label="Mes anterior">‹</button><button class="icon-button" id="full-next-month" aria-label="Mes siguiente">›</button></div></div>
-        <div class="full-calendar-wrap"><div id="full-calendar-grid" aria-live="polite"></div></div>
+    <section class="share-section" aria-labelledby="share-heading">
+      <div class="section-heading"><div><p class="eyebrow">UN MENSAJE Y TODOS ENTERADOS</p><h2 id="share-heading">Aviso listo para el grupo</h2></div><span class="small-note">Menos «¿a quién le toca?»</span></div>
+      <div class="share-panel">
+        <div class="share-controls">
+          <span class="share-symbol" aria-hidden="true">↗</span>
+          <h3>El recordatorio ya está escrito.</h3>
+          <p>Elige uno de los próximos 8 fines de semana. El mensaje incluye las tareas, los responsables y cualquier intercambio.</p>
+          <label for="share-weekend">Fin de semana</label>
+          <select id="share-weekend"></select>
+          <div class="share-actions"><button class="share-button" id="copy-reminder">Copiar aviso</button><a class="share-link" id="whatsapp-reminder" target="_blank" rel="noopener noreferrer">Abrir en WhatsApp <span aria-hidden="true">↗</span></a></div>
+          <p class="share-note">Tú eliges el grupo y envías el mensaje.</p>
+          <p id="share-status" class="share-status" role="status"></p>
+        </div>
+        <div class="message-preview"><label for="reminder-text"><span class="live-dot" aria-hidden="true"></span> VISTA PREVIA DEL MENSAJE</label><textarea id="reminder-text" readonly spellcheck="false"></textarea><span class="message-signature">Hecho para compartir, sin escribirlo de nuevo.</span></div>
       </div>
-      <p class="full-calendar-note">Los días con color claro son del mes anterior o siguiente. Cada fin de semana muestra quién hace escaleras y quién limpia el baño.</p>
     </section>
 
     <section class="next-turns-section" aria-labelledby="next-turns-heading">

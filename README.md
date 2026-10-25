@@ -29,6 +29,9 @@ La equidad es **por tarea**, no por total: cada persona de escaleras participa u
 - Explicaciones de los intercambios y reparto de los primeros 30 fines de semana.
 - Descarga `.ics` del mes visible, respetando el filtro de persona. Eventos de día completo que cubren sábado y domingo. El archivo es una copia para importar, no una suscripción sincronizada.
 - Impresión del mes visible.
+- Modo claro/oscuro con colores adaptados en tarjetas, turnos, controles y ventanas. Recuerda la preferencia en el dispositivo; la primera visita usa el tema del sistema.
+- **Aviso listo para el grupo:** elegir uno de los próximos 8 fines de semana, revisar el mensaje y copiarlo o abrir un borrador en WhatsApp. Incluye intercambios y enlace al calendario; el usuario elige el destinatario y lo envía. Sustituye la cuadrícula mensual.
+- Próximo turno de cada persona con cuenta regresiva, incluido el domingo en curso.
 
 No requiere cuentas ni almacena información personal del visitante. La configuración es compartida en el código; no hay cambios locales que hagan que cada persona vea un calendario diferente. Las tipografías se cargan desde Google Fonts con fuentes de respaldo locales.
 
