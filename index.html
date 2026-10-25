@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f7f2">
+  <meta name="description" content="El calendario de limpieza de nuestra casa. Turnos de fin de semana, un reparto justo y ninguna tarea doble.">
+  <title>Casa en orden · Calendario de limpieza</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="Casa en orden, inicio"><span class="brand-icon" aria-hidden="true">⌂</span> casa<span class="brand-light">enorden</span><span class="brand-dot">.</span></a>
+    <span class="header-caption">Un espacio de todos, un esfuerzo de todos.</span>
+    <a class="header-link" href="#rotaciones">Cómo nos organizamos <span aria-hidden="true">↗</span></a>
+  </header>
+
+  <main>
+    <section class="intro">
+      <div><p class="eyebrow"><span class="live-dot"></span> NUESTRO CALENDARIO COMPARTIDO</p><h1>Una casa limpia.<br><span>Un turno a la vez.</span></h1><p class="intro-copy">Aquí sabemos a quién le toca. Nos repartimos las tareas<br class="desktop-break"> del fin de semana para que todo esté en orden.</p></div>
+      <div class="house-art" aria-hidden="true"><svg viewBox="0 0 260 205" fill="none"><ellipse cx="132" cy="185" rx="105" ry="12" fill="#e7e9dc"/><path d="M64 92 137 38 208 92v88H64Z" fill="#e3e8d3"/><path d="m45 96 92-70 91 70" stroke="#576c42" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/><path d="M155 180v-57h31v57" fill="#99aa7b"/><rect x="85" y="100" width="43" height="43" rx="7" fill="#fbfcf5"/><path d="M106.5 100v43M85 121.5h43" stroke="#b5c39e" stroke-width="3"/><path d="m54 163 20-42M42 172l15-26 20 10-12 26" fill="#d7b47f"/><path d="m57 146 20 10" stroke="#826747" stroke-width="4"/><path d="M222 40v20m-10-10h20M38 63v12m-6-6h12" stroke="#9cae7f" stroke-width="3" stroke-linecap="round"/><circle cx="203" cy="24" r="3" fill="#d7b47f"/><path d="M215 179v-24m0 12c-13 0-17-10-17-10 13-3 17 10 17 10Zm0-8s0-14 13-17c2 13-13 17-13 17Z" stroke="#7d9266" stroke-width="3" stroke-linejoin="round"/></svg><span class="art-note">Entre todos, se siente hogar.</span></div>
+    </section>
+
+    <section class="upcoming" aria-labelledby="upcoming-heading">
+      <div class="upcoming-heading"><div><p class="eyebrow" id="weekend-label">ESTE FIN DE SEMANA</p><h2 id="upcoming-heading">Cargando turnos…</h2></div><span class="weekend-pill">Sábado o domingo <span aria-hidden="true">↗</span></span></div>
+      <div class="task-grid" id="upcoming-tasks"></div>
+      <div class="upcoming-footer"><span><span class="check-circle" aria-hidden="true">✓</span> Una persona, una tarea por fin de semana.</span><span id="upcoming-swap">Los turnos se actualizan automáticamente.</span></div>
+    </section>
+
+    <section class="calendar-section" aria-labelledby="calendar-heading">
+      <div class="section-heading"><div><p class="eyebrow">PARA ORGANIZARNOS CON TIEMPO</p><h2 id="calendar-heading">Los próximos turnos</h2></div><button class="text-button" id="balance-button">Ver reparto <span aria-hidden="true">↗</span></button></div>
+      <div class="calendar-panel">
+        <div class="calendar-toolbar"><div class="month-control"><h3 id="month-label" aria-live="polite"></h3><div class="month-buttons"><button class="icon-button" id="previous-month" aria-label="Mes anterior">‹</button><button class="icon-button" id="next-month" aria-label="Mes siguiente">›</button></div><button class="today-button" id="today-button">Hoy</button></div><label class="person-filter"><span>Ver turnos de</span><select id="person-filter"><option value="all">Todos en casa</option></select></label></div>
+        <div class="table-head" aria-hidden="true"><span>FIN DE SEMANA</span><span>ESCALERAS Y PASILLO</span><span>BAÑO</span><span>TURNO</span></div>
+        <div id="calendar-rows" aria-live="polite"></div>
+        <div class="calendar-footer"><span><span class="swap-dot"></span> Intercambio para evitar tareas dobles</span><span id="month-count"></span></div>
+      </div>
+      <div class="calendar-actions"><p>El turno cubre sábado y domingo. Elijan el día que mejor les venga.</p><div><button class="text-button" id="download-button"><span aria-hidden="true">↓</span> Descargar mes (.ics)</button><button class="text-button" id="print-button"><span aria-hidden="true">▤</span> Imprimir</button></div></div>
+      <p class="download-hint" id="download-status" role="status"></p>
+    </section>
+
+    <section class="rules-section" id="rotaciones" aria-labelledby="rules-heading">
+      <div class="section-heading"><div><p class="eyebrow">CLARO Y SIN ENREDOS</p><h2 id="rules-heading">Así nos organizamos</h2></div><span class="small-note">6 personas · 2 tareas · cada fin de semana</span></div>
+      <div class="rules-grid"><article class="rule-card"><span class="rule-number">01 / LAS ROTACIONES</span><h3>Cada quien tiene su turno</h3><p><strong>Escaleras y pasillo</strong><br>Barrer las escaleras y trapear el pasillo de arriba cuentan como una sola tarea.</p><div class="rotation" id="stairs-rotation"></div><p><strong>Lavar el baño</strong><br>En esta rotación también participa Fredy.</p><div class="rotation" id="bathroom-rotation"></div></article><article class="rule-card"><span class="rule-number">02 / SIN TAREAS DOBLES</span><h3>Si coinciden, intercambiamos</h3><p>Si a alguien le tocan ambas tareas, su turno de baño se intercambia con el de la siguiente semana. El de escaleras se mantiene.</p><div class="swap-example"><span>Baño de esta semana</span><span aria-hidden="true">⇄</span><span>Baño de la siguiente</span></div><p>Nadie pierde ni suma un turno: una persona se adelanta y la otra lo hace el fin de semana siguiente.</p></article><article class="rule-card fairness-card"><span class="rule-number">03 / UN REPARTO JUSTO</span><h3>Todos aportamos</h3><p>La frecuencia se respeta dentro de cada tarea: escaleras entre 5 personas y baño entre 6.</p><p>Fredy tiene menos tareas totales porque solo participa en baño. Nubia está al final de las dos rotaciones.</p><div class="start-note"><span aria-hidden="true">⚑</span> Inicio del calendario<br><strong>24 de octubre de 2026</strong></div></article></div>
+    </section>
+    <noscript><p class="empty-state">Activa JavaScript para ver el calendario y calcular los turnos.</p></noscript>
+  </main>
+  <footer class="site-footer"><a class="brand" href="./">casa<span class="brand-light">enorden</span><span class="brand-dot">.</span></a><span>Menos pendientes. Más hogar.</span><span>Hecho para nuestra casa <span aria-hidden="true">♡</span></span></footer>
+
+  <dialog id="balance-dialog" aria-labelledby="balance-heading"><div class="dialog-heading"><div><p class="eyebrow">CADA TURNO CUENTA</p><h2 id="balance-heading">El reparto, en números</h2></div><button class="icon-button" id="close-dialog" aria-label="Cerrar reparto">×</button></div><p>Primeros 30 fines de semana desde el 24 de octubre de 2026. Los intercambios pueden mover un turno fuera de este período.</p><div id="balance-table"></div><p class="dialog-note">La equidad se mide por tarea. Fredy solo participa en baño; el resto participa en ambas rotaciones.</p></dialog>
+</body>
+</html>
