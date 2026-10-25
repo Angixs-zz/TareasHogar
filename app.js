@@ -1,4 +1,4 @@
-import { START_DATE, PEOPLE, STAIRS_ORDER, BATHROOM_ORDER, person, addDays, nextWeekend, generateSchedule, scheduleThrough, calendarFile } from './schedule.js';
+import { START_DATE, PEOPLE, STAIRS_ORDER, BATHROOM_ORDER, person, addDays, nextWeekend, generateSchedule, scheduleThrough, monthView, nextTurns, calendarFile } from './schedule.js';
 
 const $ = (selector) => document.querySelector(selector);
 const now = new Date();
@@ -6,7 +6,10 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0'
 const activeWeekend = nextWeekend(today);
 const activeMonth = activeWeekend.slice(0, 7);
 let visibleMonth = activeMonth;
+let fullMonth = activeMonth;
 let selectedPerson = 'all';
+let theme = localStorage.getItem('tareas-tema') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+document.documentElement.setAttribute('data-theme', theme);
 const dateFormat = (iso, options) => new Intl.DateTimeFormat('es-MX', { ...options, timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`));
 const capitalize = (text) => text[0].toUpperCase() + text.slice(1);
 const shortDate = (iso) => dateFormat(iso, { day: 'numeric', month: 'short' });
@@ -41,8 +44,7 @@ function renderUpcoming() {
 function monthWeeks() {
   const [year, month] = visibleMonth.split('-').map(Number);
   const lastDay = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
-  return scheduleThrough(lastDay)
-    .filter((week) => week.date.startsWith(visibleMonth));
+  return scheduleThrough(lastDay).filter((week) => week.date.startsWith(visibleMonth));
 }
 
 function personCell(id, task) {
@@ -84,6 +86,58 @@ function renderRotations() {
   $('#balance-table').innerHTML = `<table class="balance-table"><thead><tr><th scope="col">Persona</th><th scope="col">Escaleras</th><th scope="col">Baño</th><th scope="col">Total</th></tr></thead><tbody>${PEOPLE.map(({ id, name }) => `<tr><th scope="row"><span class="person-cell">${avatar(id)}${name}</span></th><td>${totals[id].stairs}</td><td>${totals[id].bathroom}</td><td><strong>${totals[id].stairs + totals[id].bathroom}</strong></td></tr>`).join('')}</tbody></table>`;
 }
 
+function dayOfWeekLabel(index) {
+  return ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'][index];
+}
+
+function renderFullCalendar() {
+  const view = monthView(fullMonth);
+  $('#full-month-label').textContent = capitalize(dateFormat(`${fullMonth}-01`, { month: 'long', year: 'numeric' }));
+  $('#full-previous-month').disabled = fullMonth <= START_DATE.slice(0, 7);
+  $('#full-next-month').disabled = fullMonth >= '2100-12';
+
+  const header = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'].map((label) => `<div>${label}</div>`).join('');
+  const rows = view.weeks.map((week) => {
+    return week.map((day) => {
+      const cls = ['fc-day', !day.inMonth ? 'other' : '', day.iso === today ? 'today' : ''].filter(Boolean).join(' ');
+      const tasks = [];
+      if (day.week) {
+        if (day.week.stairs) tasks.push(`<span class="fc-task stairs" title="${person(day.week.stairs).name} · Escaleras">${person(day.week.stairs).initials} Escaleras</span>`);
+        if (day.week.bathroom) tasks.push(`<span class="fc-task bath${day.week.swap ? ' swap' : ''}" title="${person(day.week.bathroom).name} · Baño">${person(day.week.bathroom).initials} Baño${day.week.swap ? ' ⇄' : ''}</span>`);
+      }
+      return `<div class="${cls}" role="gridcell" aria-label="${day.display} ${day.inMonth ? '' : 'fuera de mes'}${tasks.length ? ' · ' + tasks.map(t => t.replace(/<[^>]*>/g, ' ').trim()).join(', ') : ''}">
+        <div class="fc-date">${day.display}</div>
+        ${day.inMonth ? tasks.join('') : '<div class="fc-empty"></div>'}
+      </div>`;
+    }).join('');
+  }).join('');
+  $('#full-calendar-grid').innerHTML = `<div class="fc-head">${header}</div>${rows}`;
+}
+
+function daysBetween(a, b) {
+  return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000);
+}
+
+function renderNextTurns() {
+  const grid = $('#next-turns-grid');
+  grid.innerHTML = PEOPLE.map(({ id, name, color, initials }) => {
+    const turns = nextTurns(id, 24).filter((t) => addDays(t.date, 1) >= today);
+    const next = turns[0];
+    if (!next) return '';
+    const days = daysBetween(today, next.date);
+    const label = next.task === 'stairs' ? 'Escaleras y pasillo' : 'Baño';
+    const swap = next.swap ? `<div class="swap-hint">Intercambio: ${swapExplanation({ date: next.date, swap: next.swap })}</div>` : '';
+    return `<article class="next-card"><span class="person-avatar ${color}" aria-hidden="true">${initials}</span>
+      <span class="task-label">Próximo turno: ${label}</span>
+      <h3>${name}</h3>
+      <div class="date-big">${shortDate(next.date)}</div>
+      <div class="date-copy">${days === 0 ? '¡Hoy o mañana!' : days === 1 ? 'Mañana' : `En ${days} días`}</div>
+      ${swap}
+      <footer><span aria-hidden="true">📅</span>${next.task === 'stairs' ? 'Escaleras y pasillo' : 'Lavar el baño'}</footer>
+    </article>`;
+  }).join('');
+}
+
 for (const { id, name } of PEOPLE) $('#person-filter').add(new Option(name, id));
 $('#person-filter').addEventListener('change', (event) => { selectedPerson = event.target.value; renderCalendar(); });
 $('#previous-month').addEventListener('click', () => moveMonth(-1));
@@ -109,7 +163,29 @@ $('#download-button').addEventListener('click', () => {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   $('#download-status').textContent = 'Archivo preparado. Impórtalo en Google Calendar, Apple Calendar u Outlook. Es una copia de este mes, no una suscripción.';
 });
+$('#theme-toggle').addEventListener('click', () => {
+  theme = theme === 'light' ? 'dark' : 'light';
+  localStorage.setItem('tareas-tema', theme);
+  document.documentElement.setAttribute('data-theme', theme);
+  $('#theme-toggle').querySelector('.theme-icon').textContent = theme === 'dark' ? '☀️' : '🌙';
+});
+$('#theme-toggle').querySelector('.theme-icon').textContent = theme === 'dark' ? '☀️' : '🌙';
+
+// Calendario mensual completo
+$('#full-previous-month').addEventListener('click', () => {
+  const [year, month] = fullMonth.split('-').map(Number);
+  fullMonth = new Date(Date.UTC(year, month - 2, 1)).toISOString().slice(0, 7);
+  renderFullCalendar();
+});
+$('#full-next-month').addEventListener('click', () => {
+  const [year, month] = fullMonth.split('-').map(Number);
+  fullMonth = new Date(Date.UTC(year, month, 1)).toISOString().slice(0, 7);
+  renderFullCalendar();
+});
+$('#full-print-button').addEventListener('click', () => window.print());
 
 renderUpcoming();
 renderCalendar();
+renderFullCalendar();
+renderNextTurns();
 renderRotations();

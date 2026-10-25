@@ -64,6 +64,38 @@ export function scheduleThrough(iso) {
   return generateSchedule(Math.max(0, weeks));
 }
 
+export function monthView(iso) {
+  const [year, month] = iso.split('-').map(Number);
+  const first = new Date(Date.UTC(year, month - 1, 1));
+  const last = new Date(Date.UTC(year, month, 0));
+  const startWeek = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), first.getUTCDate() - first.getUTCDay()));
+  const endWeek = new Date(Date.UTC(last.getUTCFullYear(), last.getUTCMonth(), last.getUTCDate() + (6 - last.getUTCDay())));
+  const weeks = [];
+  let d = new Date(startWeek);
+  while (d <= endWeek) {
+    const weekDays = [];
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + i));
+      const isoDay = day.toISOString().slice(0, 10);
+      const week = scheduleThrough(isoDay).filter((w) => w.date === isoDay)[0] ?? null;
+      weekDays.push({ iso: isoDay, display: day.getUTCDate(), inMonth: day.getUTCMonth() === month - 1, week });
+    }
+    weeks.push(weekDays);
+    d.setUTCDate(d.getUTCDate() + 7);
+  }
+  return { year, month, weeks };
+}
+
+export function nextTurns(personId, count = 12) {
+  const weeks = generateSchedule(count);
+  const turns = [];
+  for (const week of weeks) {
+    if (week.stairs === personId) turns.push({ date: week.date, task: 'stairs', swap: week.swap });
+    if (week.bathroom === personId) turns.push({ date: week.date, task: 'bathroom', swap: week.swap });
+  }
+  return turns;
+}
+
 export function calendarFile(weeks, selectedPerson = 'all') {
   const compact = (date) => date.replaceAll('-', '');
   const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Casa en orden//Turnos//ES', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:Casa en orden'];

@@ -14,6 +14,7 @@
   <header class="site-header">
     <a class="brand" href="./" aria-label="Casa en orden, inicio"><span class="brand-icon" aria-hidden="true">⌂</span> casa<span class="brand-light">enorden</span><span class="brand-dot">.</span></a>
     <span class="header-caption">Un espacio de todos, un esfuerzo de todos.</span>
+    <button class="theme-toggle" id="theme-toggle" aria-label="Cambiar modo claro u oscuro"><span class="theme-icon" aria-hidden="true">🌙</span></button>
     <a class="header-link" href="#rotaciones">Cómo nos organizamos <span aria-hidden="true">↗</span></a>
   </header>
 
@@ -39,6 +40,21 @@
       </div>
       <div class="calendar-actions"><p>El turno cubre sábado y domingo. Elijan el día que mejor les venga.</p><div><button class="text-button" id="download-button"><span aria-hidden="true">↓</span> Descargar mes (.ics)</button><button class="text-button" id="print-button"><span aria-hidden="true">▤</span> Imprimir</button></div></div>
       <p class="download-hint" id="download-status" role="status"></p>
+    </section>
+
+    <section class="calendar-section full-calendar-section" aria-labelledby="full-calendar-heading">
+      <div class="section-heading"><div><p class="eyebrow">CALENDARIO COMPLETO</p><h2 id="full-calendar-heading">Vista mensual de turnos</h2></div><button class="text-button" id="full-print-button"><span aria-hidden="true">▤</span> Imprimir mes</button></div>
+      <div class="full-calendar-panel">
+        <div class="full-calendar-toolbar"><h3 id="full-month-label"></h3><div class="full-calendar-nav"><button class="icon-button" id="full-previous-month" aria-label="Mes anterior">‹</button><button class="icon-button" id="full-next-month" aria-label="Mes siguiente">›</button></div></div>
+        <div class="full-calendar-wrap"><div id="full-calendar-grid" aria-live="polite"></div></div>
+      </div>
+      <p class="full-calendar-note">Los días con color claro son del mes anterior o siguiente. Cada fin de semana muestra quién hace escaleras y quién limpia el baño.</p>
+    </section>
+
+    <section class="next-turns-section" aria-labelledby="next-turns-heading">
+      <div class="section-heading"><div><p class="eyebrow">PRÓXIMO TURNO DE CADA UNO</p><h2 id="next-turns-heading">¿Cuándo te toca a ti?</h2></div></div>
+      <div class="next-turns-grid" id="next-turns-grid"></div>
+      <p class="next-turns-note">Cuenta regresiva hasta tu próximo fin de semana de turno, en cualquiera de las dos tareas.</p>
     </section>
 
     <section class="rules-section" id="rotaciones" aria-labelledby="rules-heading">
