@@ -38,12 +38,12 @@
     </section>
 
     <section class="calendar-section" aria-labelledby="calendar-heading">
-      <div class="section-heading"><div><p class="eyebrow">PARA ORGANIZARNOS CON TIEMPO</p><h2 id="calendar-heading">Los próximos turnos</h2></div><button class="text-button" id="balance-button">Ver reparto <span aria-hidden="true">↗</span></button></div>
-      <div class="calendar-panel">
+      <div class="section-heading"><div><p class="eyebrow">PARA ORGANIZARNOS CON TIEMPO</p><h2 id="calendar-heading">Los próximos turnos</h2></div><div class="section-actions"><button class="text-button" id="tasks-button"><span aria-hidden="true">＋</span> Añadir tarea</button><button class="text-button" id="balance-button">Ver reparto <span aria-hidden="true">↗</span></button></div></div>
+      <div class="calendar-panel" id="calendar-panel">
         <div class="calendar-toolbar"><div class="month-control"><h3 id="month-label" aria-live="polite"></h3><div class="month-buttons"><button class="icon-button" id="previous-month" aria-label="Mes anterior">‹</button><button class="icon-button" id="next-month" aria-label="Mes siguiente">›</button></div><button class="today-button" id="today-button">Hoy</button></div><label class="person-filter"><span>Ver turnos de</span><select id="person-filter"><option value="all">Todos en casa</option></select></label></div>
-        <div class="table-head" aria-hidden="true"><span>FIN DE SEMANA</span><span>ESCALERAS Y PASILLO</span><span>BAÑO</span><span>TURNO</span></div>
+        <div class="table-head" id="calendar-head" aria-hidden="true"></div>
         <div id="calendar-rows" aria-live="polite"></div>
-        <div class="calendar-footer"><span><span class="swap-dot"></span> Intercambio para evitar tareas dobles</span><span id="month-count"></span></div>
+        <div class="calendar-footer"><span><span class="swap-dot"></span> Ajuste para evitar tareas dobles</span><span id="month-count"></span></div>
       </div>
       <div class="calendar-actions"><p>El turno cubre sábado y domingo. Elijan el día que mejor les venga.</p><div><button class="text-button" id="download-button"><span aria-hidden="true">↓</span> Descargar mes (.ics)</button><button class="text-button" id="print-button"><span aria-hidden="true">▤</span> Imprimir</button></div></div>
       <p class="download-hint" id="download-status" role="status"></p>
@@ -55,7 +55,7 @@
         <div class="share-controls">
           <span class="share-symbol" aria-hidden="true">↗</span>
           <h3>El recordatorio ya está escrito.</h3>
-          <p>Elige uno de los próximos 8 fines de semana. El mensaje incluye las tareas, los responsables y cualquier intercambio.</p>
+          <p>Elige uno de los próximos 8 fines de semana. El mensaje incluye las tareas, los responsables y cualquier ajuste.</p>
           <label for="share-weekend">Fin de semana</label>
           <select id="share-weekend"></select>
           <div class="share-actions"><button class="share-button" id="copy-reminder">Copiar aviso</button><a class="share-link" id="whatsapp-reminder" target="_blank" rel="noopener noreferrer">Abrir en WhatsApp <span aria-hidden="true">↗</span></a></div>
@@ -69,17 +69,49 @@
     <section class="next-turns-section" aria-labelledby="next-turns-heading">
       <div class="section-heading"><div><p class="eyebrow">PRÓXIMO TURNO DE CADA UNO</p><h2 id="next-turns-heading">¿Cuándo te toca a ti?</h2></div></div>
       <div class="next-turns-grid" id="next-turns-grid"></div>
-      <p class="next-turns-note">Cuenta regresiva hasta tu próximo fin de semana de turno, en cualquiera de las dos tareas.</p>
+      <p class="next-turns-note">Cuenta regresiva hasta tu próximo fin de semana de turno, en cualquiera de las tareas.</p>
     </section>
 
     <section class="rules-section" id="rotaciones" aria-labelledby="rules-heading">
-      <div class="section-heading"><div><p class="eyebrow">CLARO Y SIN ENREDOS</p><h2 id="rules-heading">Así nos organizamos</h2></div><span class="small-note">6 personas · 2 tareas · cada fin de semana</span></div>
-      <div class="rules-grid"><article class="rule-card"><span class="rule-number">01 / LAS ROTACIONES</span><h3>Cada quien tiene su turno</h3><p><strong>Escaleras y pasillo</strong><br>Barrer las escaleras y trapear el pasillo de arriba cuentan como una sola tarea.</p><div class="rotation" id="stairs-rotation"></div><p><strong>Lavar el baño</strong><br>En esta rotación también participa Fredy.</p><div class="rotation" id="bathroom-rotation"></div></article><article class="rule-card"><span class="rule-number">02 / SIN TAREAS DOBLES</span><h3>Si coinciden, intercambiamos</h3><p>Si a alguien le tocan ambas tareas, su turno de baño se intercambia con el de la siguiente semana. El de escaleras se mantiene.</p><div class="swap-example"><span>Baño de esta semana</span><span aria-hidden="true">⇄</span><span>Baño de la siguiente</span></div><p>Nadie pierde ni suma un turno: una persona se adelanta y la otra lo hace el fin de semana siguiente.</p></article><article class="rule-card fairness-card"><span class="rule-number">03 / UN REPARTO JUSTO</span><h3>Todos aportamos</h3><p>La frecuencia se respeta dentro de cada tarea: escaleras entre 5 personas y baño entre 6.</p><p>Fredy tiene menos tareas totales porque solo participa en baño. Nubia está al final de las dos rotaciones.</p><div class="start-note"><span aria-hidden="true">⚑</span> Inicio del calendario<br><strong>24 de octubre de 2026</strong></div></article></div>
+      <div class="section-heading"><div><p class="eyebrow">CLARO Y SIN ENREDOS</p><h2 id="rules-heading">Así nos organizamos</h2></div><span class="small-note" id="rules-note">6 personas · 3 tareas · cada fin de semana</span></div>
+      <div class="rules-grid">
+        <article class="rule-card"><span class="rule-number">01 / LAS ROTACIONES</span><h3>Cada quien tiene su turno</h3><div id="rotation-list"></div></article>
+        <article class="rule-card"><span class="rule-number">02 / SIN TAREAS DOBLES</span><h3>Si coinciden, se combinan</h3><p>Si a una persona le tocan dos tareas el mismo fin de semana, una de ellas se adelanta: la siguiente persona de esa rotación la cubre y la persona desplazada recupera su turno el siguiente fin de semana libre.</p><div class="swap-example"><span>Una tarea</span><span aria-hidden="true">⇄</span><span>La siguiente</span></div><p>Nadie pierde ni suma un turno: una persona se adelanta y la otra lo hace después. El calendario recalcula la combinación completa cada vez que se añade una tarea.</p></article>
+        <article class="rule-card fairness-card"><span class="rule-number">03 / UN REPARTO JUSTO</span><h3>Todos aportamos</h3><p id="fairness-copy">Cada tarea rota solo entre quienes participan. El reparto se mide por tarea.</p><p>Quien no está en una rotación no recibe turnos de esa tarea. Puedes añadir tareas nuevas y el reparto se recalcula sin tareas dobles.</p><div class="start-note"><span aria-hidden="true">⚑</span> Inicio del calendario<br><strong>24 de octubre de 2026</strong></div></article>
+      </div>
     </section>
     <noscript><p class="empty-state">Activa JavaScript para ver el calendario y calcular los turnos.</p></noscript>
   </main>
   <footer class="site-footer"><a class="brand" href="./">casa<span class="brand-light">enorden</span><span class="brand-dot">.</span></a><span>Menos pendientes. Más hogar.</span><span>Hecho para nuestra casa <span aria-hidden="true">♡</span></span></footer>
 
-  <dialog id="balance-dialog" aria-labelledby="balance-heading"><div class="dialog-heading"><div><p class="eyebrow">CADA TURNO CUENTA</p><h2 id="balance-heading">El reparto, en números</h2></div><button class="icon-button" id="close-dialog" aria-label="Cerrar reparto">×</button></div><p>Primeros 30 fines de semana desde el 24 de octubre de 2026. Los intercambios pueden mover un turno fuera de este período.</p><div id="balance-table"></div><p class="dialog-note">La equidad se mide por tarea. Fredy solo participa en baño; el resto participa en ambas rotaciones.</p></dialog>
+  <dialog id="balance-dialog" aria-labelledby="balance-heading"><div class="dialog-heading"><div><p class="eyebrow">CADA TURNO CUENTA</p><h2 id="balance-heading">El reparto, en números</h2></div><button class="icon-button" id="close-dialog" aria-label="Cerrar reparto">×</button></div><p>Primeros 30 fines de semana desde el 24 de octubre de 2026. Los ajustes pueden mover un turno fuera de este período.</p><div id="balance-table"></div><p class="dialog-note">La equidad se mide por tarea. Cada persona participa según las rotaciones de las tareas en las que está incluida.</p></dialog>
+
+  <dialog id="tasks-dialog" aria-labelledby="tasks-heading">
+    <div class="dialog-heading"><div><p class="eyebrow">TAREAS DE LA CASA</p><h2 id="tasks-heading">Añadir una tarea</h2></div><button class="icon-button" id="close-tasks-dialog" aria-label="Cerrar tareas">×</button></div>
+    <p>Agrega una tarea y el calendario vuelve a calcular las combinaciones para que nadie haga dos tareas el mismo fin de semana.</p>
+    <div id="task-list" class="task-list"></div>
+    <form id="task-form" class="task-form">
+      <label for="task-name">Nombre de la tarea</label>
+      <input id="task-name" name="name" required maxlength="60" placeholder="Ej. Barrer la cocina" autocomplete="off">
+      <label for="task-description">Qué incluye (opcional)</label>
+      <input id="task-description" name="description" maxlength="140" placeholder="Ej. Barrer y trapear la cocina">
+      <label for="task-icon">Icono</label>
+      <select id="task-icon" name="icon">
+        <option value="broom">Escoba</option>
+        <option value="stairs">Escaleras</option>
+        <option value="bath">Baño</option>
+        <option value="kitchen">Cocina</option>
+        <option value="trash">Basura</option>
+        <option value="laundry">Ropa</option>
+        <option value="dishes">Trastes</option>
+        <option value="plants">Plantas</option>
+        <option value="generic">General</option>
+      </select>
+      <fieldset><legend>¿Quién participa?</legend><div id="task-people" class="people-checks"></div></fieldset>
+      <p class="form-message" id="task-message" role="status"></p>
+      <div class="form-actions"><button type="submit" class="share-button">Añadir y recalcular</button><button type="button" class="text-button" id="reset-tasks">Restaurar tareas originales</button></div>
+      <p class="dialog-note">Las tareas que agregues se guardan solo en este dispositivo. Las tareas originales siguen iguales para los demás.</p>
+    </form>
+  </dialog>
 </body>
 </html>
