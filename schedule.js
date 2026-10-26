@@ -190,6 +190,23 @@ export function scheduleThrough(iso, tasks = TASKS) {
   return generateSchedule(Math.max(0, weeks), tasks);
 }
 
+// Un fin de semana entra en el rango si se cruza con él, aunque el rango
+// empiece en domingo o termine en sábado.
+export function weeksInRange(weeks, from, to) {
+  return weeks.filter((week) => week.date <= to && addDays(week.date, 1) >= from);
+}
+
+export function countAssignments(weeks, tasks = TASKS, people = PEOPLE) {
+  const counts = Object.fromEntries(people.map(({ id }) => [id, Object.fromEntries(tasks.map((task) => [task.id, 0]))]));
+  for (const week of weeks) {
+    for (const task of tasks) {
+      const personId = week.tasks[task.id];
+      if (personId in counts) counts[personId][task.id] += 1;
+    }
+  }
+  return counts;
+}
+
 const escapeIcs = (value) => String(value)
   .replaceAll('\\', '\\\\')
   .replaceAll(';', '\\;')

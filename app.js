@@ -1,4 +1,4 @@
-import { START_DATE, PEOPLE, TASKS as DEFAULT_TASKS, person, addDays, nextWeekend, generateSchedule, scheduleThrough, calendarFile, suggestOrder, validateTasks } from './schedule.js?v=20261026-3t';
+import { START_DATE, PEOPLE, TASKS as DEFAULT_TASKS, person, addDays, nextWeekend, scheduleThrough, weeksInRange, countAssignments, calendarFile, suggestOrder, validateTasks } from './schedule.js?v=20261026-4p';
 
 const $ = (selector) => document.querySelector(selector);
 const STORAGE_KEY = 'tareas-hogar-tareas';
@@ -9,6 +9,11 @@ const activeMonth = activeWeekend.slice(0, 7);
 let visibleMonth = activeMonth;
 let selectedPerson = 'all';
 let theme = document.documentElement.dataset.theme;
+const MAX_DATE = '2100-12-31';
+const DEFAULT_FROM = START_DATE;
+const DEFAULT_TO = addDays(START_DATE, 7 * 29);
+let balanceFrom = DEFAULT_FROM;
+let balanceTo = DEFAULT_TO;
 
 const ICONS = {
   stairs: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h6v-6h6V8h6M3 20v-5h6V9h6V3h6"/></svg>',
@@ -28,6 +33,8 @@ const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({ '&'
 const dateFormat = (iso, options) => new Intl.DateTimeFormat('es-MX', { ...options, timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`));
 const capitalize = (text) => text[0].toUpperCase() + text.slice(1);
 const shortDate = (iso) => dateFormat(iso, { day: 'numeric', month: 'short' });
+const longDate = (iso) => dateFormat(iso, { day: 'numeric', month: 'long', year: 'numeric' });
+const formatNumber = (value) => Number.isInteger(value) ? String(value) : value.toFixed(1).replace('.', ',');
 const avatar = (id, large = false) => `<span class="avatar ${person(id).color}${large ? ' large' : ''}" aria-hidden="true">${person(id).initials}</span>`;
 const weekendRange = (iso) => {
   const sunday = addDays(iso, 1);
@@ -173,17 +180,134 @@ function renderRotations() {
   $('#rules-note').textContent = `${PEOPLE.length} personas · ${tasks.length} ${tasks.length === 1 ? 'tarea' : 'tareas'} · cada fin de semana`;
   const frequencies = tasks.map((task) => `${task.name}: ${task.order.length} ${task.order.length === 1 ? 'persona' : 'personas'}`).join(' · ');
   $('#fairness-copy').textContent = `Cada tarea rota solo entre quienes participan (${frequencies}). El reparto se mide por tarea, no por suma total.`;
+}
 
-  const totals = Object.fromEntries(PEOPLE.map(({ id }) => [id, Object.fromEntries(tasks.map((task) => [task.id, 0]))]));
-  for (const week of generateSchedule(30, tasks)) {
-    for (const task of tasks) totals[week.tasks[task.id]][task.id] += 1;
+// El rango del reparto es inclusivo: un fin de semana cuenta si toca
+// cualquier día entre «desde» y «hasta», aunque el rango empiece en domingo.
+function clampRange(from, to) {
+  let start = !from || from < START_DATE ? START_DATE : from;
+  let end = to || start;
+  if (start > MAX_DATE) start = MAX_DATE;
+  if (end < start) end = start;
+  if (end > MAX_DATE) end = MAX_DATE;
+  return { from: start, to: end };
+}
+
+function presetRange(name) {
+  if (name === 'month') {
+    const [year, month] = visibleMonth.split('-').map(Number);
+    const last = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
+    return clampRange(`${visibleMonth}-01`, last);
   }
-  const head = `<thead><tr><th scope="col">Persona</th>${tasks.map((task) => `<th scope="col">${escapeHtml(task.short)}</th>`).join('')}<th scope="col">Total</th></tr></thead>`;
+  if (name === 'six-months') {
+    const start = activeWeekend > START_DATE ? activeWeekend : START_DATE;
+    return clampRange(start, addDays(start, 182));
+  }
+  if (name === 'year') return clampRange(START_DATE, addDays(START_DATE, 364));
+  return { from: DEFAULT_FROM, to: DEFAULT_TO };
+}
+
+function rangeWeeks() {
+  if (!balanceTo || balanceTo < START_DATE) return [];
+  return weeksInRange(scheduleThrough(balanceTo, tasks), balanceFrom, balanceTo);
+}
+
+function rangeSummary(weeks) {
+  if (!weeks.length) return 'No hay fines de semana en este rango.';
+  const first = weeks[0].date;
+  const last = addDays(weeks.at(-1).date, 1);
+  return `${weeks.length} ${weeks.length === 1 ? 'fin de semana' : 'fines de semana'} · del ${longDate(first)} al ${longDate(last)}`;
+}
+
+function countClass(count, expected, weeksCount, rotationSize) {
+  if (weeksCount < rotationSize) return '';
+  const diff = count - expected;
+  if (Math.abs(diff) < 0.75) return 'count-fair';
+  return diff > 0 ? 'count-over' : 'count-under';
+}
+
+function renderBalance() {
+  $('#range-from').value = balanceFrom;
+  $('#range-to').value = balanceTo;
+  for (const chip of document.querySelectorAll('[data-range-preset]')) {
+    const preset = presetRange(chip.dataset.rangePreset);
+    const active = preset.from === balanceFrom && preset.to === balanceTo;
+    chip.classList.toggle('active', active);
+    chip.setAttribute('aria-pressed', String(active));
+  }
+
+  const weeks = rangeWeeks();
+  $('#range-summary').textContent = rangeSummary(weeks);
+  if (!weeks.length) {
+    $('#balance-table').innerHTML = '<p class="empty-state">No hay fines de semana entre esas fechas.</p>';
+    return;
+  }
+
+  const counts = countAssignments(weeks, tasks);
+  const expected = (task) => weeks.length / task.order.length;
+  const head = `<thead><tr><th scope="col">Persona</th>${tasks.map((task) => `<th scope="col"><span>${escapeHtml(task.short)}</span><small>~${formatNumber(expected(task))}</small></th>`).join('')}<th scope="col">Total</th><th scope="col"></th></tr></thead>`;
   const body = `<tbody>${PEOPLE.map(({ id, name }) => {
-    const total = tasks.reduce((sum, task) => sum + totals[id][task.id], 0);
-    return `<tr><th scope="row"><span class="person-cell">${avatar(id)}${escapeHtml(name)}</span></th>${tasks.map((task) => `<td>${totals[id][task.id]}</td>`).join('')}<td><strong>${total}</strong></td></tr>`;
+    const total = tasks.reduce((sum, task) => sum + counts[id][task.id], 0);
+    return `<tr><th scope="row"><span class="person-cell">${avatar(id)}${escapeHtml(name)}</span></th>${tasks.map((task) => {
+      const count = counts[id][task.id];
+      const fairness = countClass(count, expected(task), weeks.length, task.order.length);
+      return `<td class="count-cell${fairness ? ` ${fairness}` : ''}">${count}</td>`;
+    }).join('')}<td class="count-cell total-cell"><strong>${total}</strong></td><td class="profile-cell"><button type="button" class="profile-link" data-profile="${id}" aria-label="Ver perfil de ${escapeHtml(name)}">Ver perfil</button></td></tr>`;
   }).join('')}</tbody>`;
   $('#balance-table').innerHTML = `<div class="balance-scroll"><table class="balance-table">${head}${body}</table></div>`;
+}
+
+function renderPersonProfile(personId) {
+  const profile = person(personId);
+  if (!profile) return;
+  const weeks = rangeWeeks();
+  const counts = countAssignments(weeks, tasks);
+  const mine = counts[personId];
+  const included = tasks.filter((task) => task.order.includes(personId));
+  const total = included.reduce((sum, task) => sum + mine[task.id], 0);
+
+  $('#person-heading').textContent = profile.name;
+  $('#person-range').textContent = rangeSummary(weeks);
+
+  const taskCards = included.map((task) => {
+    const count = mine[task.id];
+    const expected = weeks.length / task.order.length;
+    const diff = count - expected;
+    const comparable = weeks.length >= task.order.length;
+    const fair = !comparable || Math.abs(diff) < 0.75;
+    const badge = !comparable ? 'Sin comparar' : fair ? 'En línea' : diff > 0 ? `+${Math.round(diff)}` : `−${Math.abs(Math.round(diff))}`;
+    const badgeClass = !comparable ? '' : fair ? ' fair' : ' off';
+    const title = comparable
+      ? `Esperado: ~${formatNumber(expected)}`
+      : `Hacen falta al menos ${task.order.length} fines de semana para comparar`;
+    const distribution = task.order.map((id) => `<button type="button" class="dist-person${id === personId ? ' is-me' : ''}" data-profile="${id}" aria-label="Ver perfil de ${escapeHtml(person(id).name)}"${id === personId ? ' aria-current="true"' : ''}>${avatar(id)}<b>${counts[id][task.id]}</b></button>`).join('');
+    return `<article class="profile-task">
+      <div class="profile-task-head"><span class="task-icon task-icon-small ${task.icon}" aria-hidden="true">${taskIcon(task)}</span><div class="profile-task-copy"><strong>${escapeHtml(task.name)}</strong><small>${task.order.length} personas · ~${formatNumber(expected)} por persona</small></div><div class="profile-task-score"><strong>${count}</strong><span class="fairness-badge${badgeClass}" title="${escapeHtml(title)}">${badge}</span></div></div>
+      <div class="distribution" aria-label="Reparto de ${escapeHtml(task.name)}">${distribution}</div>
+    </article>`;
+  }).join('');
+
+  const months = new Map();
+  for (const week of weeks) {
+    if (!included.some((task) => week.tasks[task.id] === personId)) continue;
+    const key = week.date.slice(0, 7);
+    months.set(key, (months.get(key) ?? 0) + 1);
+  }
+  const monthChips = [...months].map(([key, count]) => `<span class="month-chip">${escapeHtml(capitalize(dateFormat(`${key}-01`, { month: 'short', year: '2-digit' })))} <b>${count}</b></span>`).join('');
+  const participation = included.length === tasks.length ? 'Participa en todas las tareas.' : `Participa en ${included.length} de ${tasks.length} tareas.`;
+
+  $('#person-profile').innerHTML = weeks.length
+    ? `<div class="profile-hero">${avatar(personId, true)}<div><div class="profile-total"><strong>${total}</strong><span>${total === 1 ? 'tarea' : 'tareas'} en ${weeks.length} ${weeks.length === 1 ? 'fin de semana' : 'fines de semana'}</span></div><p>${participation} La equidad se compara por tarea.</p></div></div>
+      <h3 class="profile-subheading">Por tarea</h3><div class="profile-tasks">${taskCards || '<p class="empty-state">No participa en ninguna tarea de este calendario.</p>'}</div>
+      ${monthChips ? `<h3 class="profile-subheading">Por mes</h3><div class="month-breakdown">${monthChips}</div>` : ''}`
+    : '<p class="empty-state">No hay fines de semana entre esas fechas.</p>';
+}
+
+function openProfile(personId) {
+  if (!person(personId)) return;
+  renderPersonProfile(personId);
+  if ($('#balance-dialog').open) $('#balance-dialog').close();
+  $('#person-dialog').showModal();
 }
 
 function renderReminder() {
@@ -235,7 +359,7 @@ function renderNextTurns() {
       <div class="date-big">${shortDate(week.date)}</div>
       <div class="date-copy">${days < 0 ? '¡Hoy, domingo!' : days === 0 ? '¡Hoy o mañana!' : days === 1 ? 'Mañana' : `En ${days} días`}</div>
       ${hint ? `<div class="swap-hint">${escapeHtml(hint)}</div>` : ''}
-      <footer><span aria-hidden="true">${taskEmoji(task)}</span>${escapeHtml(task.name)}</footer>
+      <footer><span aria-hidden="true">${taskEmoji(task)}</span>${escapeHtml(task.name)}<button type="button" class="profile-link" data-profile="${id}" aria-label="Ver perfil de ${escapeHtml(name)}">Perfil</button></footer>
     </article>`;
   }).join('');
 }
@@ -274,6 +398,7 @@ function renderAll() {
   renderReminder();
   renderNextTurns();
   renderRotations();
+  renderBalance();
 }
 
 $('#task-form').addEventListener('submit', (event) => {
@@ -334,15 +459,44 @@ $('#previous-month').addEventListener('click', () => moveMonth(-1));
 $('#next-month').addEventListener('click', () => moveMonth(1));
 $('#today-button').addEventListener('click', () => { visibleMonth = activeMonth; renderCalendar(); });
 $('#print-button').addEventListener('click', () => window.print());
-$('#balance-button').addEventListener('click', () => $('#balance-dialog').showModal());
+$('#balance-button').addEventListener('click', () => {
+  renderBalance();
+  $('#balance-dialog').showModal();
+});
+for (const input of [$('#range-from'), $('#range-to')]) {
+  input.addEventListener('change', () => {
+    const next = clampRange($('#range-from').value || balanceFrom, $('#range-to').value || balanceTo);
+    balanceFrom = next.from;
+    balanceTo = next.to;
+    renderBalance();
+  });
+}
+for (const chip of document.querySelectorAll('[data-range-preset]')) {
+  chip.addEventListener('click', () => {
+    const next = presetRange(chip.dataset.rangePreset);
+    balanceFrom = next.from;
+    balanceTo = next.to;
+    renderBalance();
+  });
+}
+document.addEventListener('click', (event) => {
+  const trigger = event.target.closest('[data-profile]');
+  if (trigger) openProfile(trigger.dataset.profile);
+});
 $('#tasks-button').addEventListener('click', () => {
   renderTaskList();
   setTaskMessage('');
   $('#tasks-dialog').showModal();
 });
 $('#close-dialog').addEventListener('click', () => $('#balance-dialog').close());
+$('#close-person-dialog').addEventListener('click', () => $('#person-dialog').close());
+$('#back-to-balance').addEventListener('click', () => {
+  $('#person-dialog').close();
+  renderBalance();
+  $('#balance-dialog').showModal();
+});
 $('#close-tasks-dialog').addEventListener('click', () => $('#tasks-dialog').close());
-for (const dialog of [$('#balance-dialog'), $('#tasks-dialog')]) {
+for (const dialog of [$('#balance-dialog'), $('#person-dialog'), $('#tasks-dialog')]) {
   dialog.addEventListener('click', (event) => {
     if (event.target !== dialog) return;
     const rect = dialog.getBoundingClientRect();

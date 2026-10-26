@@ -30,13 +30,20 @@ Las tareas nuevas se guardan en `localStorage`, **solo en el dispositivo** donde
 
 Con las rotaciones actuales se pueden añadir hasta 2 tareas más (5 en total), porque escaleras incluye a 5 personas. En general, cada rotación debe incluir al menos tantas personas como tareas haya para garantizar que siempre quede alguien libre. El formulario valida esa condición antes de guardar.
 
+### Consultar la equidad
+
+En **Ver reparto** se elige un rango de fechas inclusivo. La tabla muestra, para cada persona, cuántos turnos tiene de cada tarea y el total; el **~** de cada columna es lo que corresponde por persona según esa rotación. Un fin de semana cuenta si cae total o parcialmente dentro del rango.
+
+Al pulsar **Ver perfil** se abre el detalle de esa persona: total de tareas, comparación por tarea con lo esperado, reparto entre las demás personas de esa rotación y actividad por mes. También se puede abrir el perfil desde las tarjetas de **Próximo turno**. La comparación es por tarea porque las rotaciones no incluyen siempre a las mismas personas (Fredy, por ejemplo, no participa en escaleras).
+
 ## Funciones
 
 - Responsables del fin de semana actual; el domingo conserva el turno del sábado.
 - Navegación mensual desde octubre de 2026 hasta diciembre de 2100.
 - Filtro por persona, con el contexto de todas las tareas de sus fines de semana.
 - Columnas y tarjetas generadas dinámicamente para cualquier número de tareas.
-- Explicaciones de los ajustes y reparto de los primeros 30 fines de semana.
+- **Reparto por rango de fechas:** elegir «desde» y «hasta» (o usar los atajos de 30 fines de semana, mes, 6 meses y 1 año) y ver cuántas tareas tiene cada persona, con el total esperado por tarea.
+- **Perfil por persona:** desde el reparto o desde su tarjeta de próximo turno, consultar el total de tareas en el rango, el detalle por tarea comparado con lo esperado, el reparto entre participantes y la actividad por mes.
 - Descarga `.ics` del mes visible, respetando el filtro de persona. Eventos de día completo que cubren sábado y domingo. El archivo es una copia para importar, no una suscripción sincronizada.
 - Impresión del mes visible.
 - Modo claro/oscuro con colores adaptados en tarjetas, turnos, controles y ventanas. Recuerda la preferencia en el dispositivo; la primera visita usa el tema del sistema.
@@ -60,7 +67,7 @@ Abrir http://localhost:8080. Es necesario servir los archivos por HTTP porque se
 npm test
 ```
 
-Las pruebas verifican los turnos iniciales de las tres tareas, 100 años sin tareas dobles, conservación y equidad de los turnos, estabilidad entre meses, tareas añadidas, validaciones, fechas y exportación ICS. No es necesario instalar dependencias.
+Las pruebas verifican los turnos iniciales de las tres tareas, 100 años sin tareas dobles, conservación y equidad de los turnos, estabilidad entre meses, tareas añadidas, conteos por rango de fechas, validaciones, fechas y exportación ICS. No es necesario instalar dependencias.
 
 ## Publicación
 

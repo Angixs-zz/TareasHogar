@@ -14,8 +14,8 @@
     document.documentElement.dataset.theme = ['light', 'dark'].includes(savedTheme)
       ? savedTheme : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   </script>
-  <link rel="stylesheet" href="./styles.css?v=20261026-3t">
-  <script type="module" src="./app.js?v=20261026-3t"></script>
+  <link rel="stylesheet" href="./styles.css?v=20261026-4p">
+  <script type="module" src="./app.js?v=20261026-4p"></script>
 </head>
 <body>
   <header class="site-header">
@@ -84,7 +84,31 @@
   </main>
   <footer class="site-footer"><a class="brand" href="./">casa<span class="brand-light">enorden</span><span class="brand-dot">.</span></a><span>Menos pendientes. Más hogar.</span><span>Hecho para nuestra casa <span aria-hidden="true">♡</span></span></footer>
 
-  <dialog id="balance-dialog" aria-labelledby="balance-heading"><div class="dialog-heading"><div><p class="eyebrow">CADA TURNO CUENTA</p><h2 id="balance-heading">El reparto, en números</h2></div><button class="icon-button" id="close-dialog" aria-label="Cerrar reparto">×</button></div><p>Primeros 30 fines de semana desde el 24 de octubre de 2026. Los ajustes pueden mover un turno fuera de este período.</p><div id="balance-table"></div><p class="dialog-note">La equidad se mide por tarea. Cada persona participa según las rotaciones de las tareas en las que está incluida.</p></dialog>
+  <dialog id="balance-dialog" aria-labelledby="balance-heading">
+    <div class="dialog-heading"><div><p class="eyebrow">CADA TURNO CUENTA</p><h2 id="balance-heading">El reparto, en números</h2></div><button class="icon-button" id="close-dialog" aria-label="Cerrar reparto">×</button></div>
+    <p>Elige un rango de fechas para ver cuántas tareas tiene cada persona. La equidad se mide por tarea, no por el total.</p>
+    <div class="range-controls">
+      <label class="range-field" for="range-from"><span>Desde</span><input type="date" id="range-from" min="2026-10-24" max="2100-12-31"></label>
+      <span class="range-sep" aria-hidden="true">→</span>
+      <label class="range-field" for="range-to"><span>Hasta</span><input type="date" id="range-to" min="2026-10-24" max="2100-12-31"></label>
+    </div>
+    <div class="range-presets" role="group" aria-label="Rangos rápidos">
+      <button type="button" class="range-chip" data-range-preset="default">Primeros 30</button>
+      <button type="button" class="range-chip" data-range-preset="month">Este mes</button>
+      <button type="button" class="range-chip" data-range-preset="six-months">6 meses</button>
+      <button type="button" class="range-chip" data-range-preset="year">1 año</button>
+    </div>
+    <p class="range-summary" id="range-summary" role="status"></p>
+    <div id="balance-table"></div>
+    <p class="dialog-note">El <strong>~</strong> de cada columna indica los turnos que corresponden por persona según esa rotación. Toca <strong>Ver perfil</strong> para revisar el detalle de alguien. Los ajustes pueden mover un turno fuera del rango.</p>
+  </dialog>
+
+  <dialog id="person-dialog" aria-labelledby="person-heading">
+    <div class="dialog-heading"><div><p class="eyebrow">TAREAS EN EL RANGO</p><h2 id="person-heading">Perfil</h2></div><button class="icon-button" id="close-person-dialog" aria-label="Cerrar perfil">×</button></div>
+    <p class="range-summary" id="person-range"></p>
+    <div id="person-profile"></div>
+    <div class="person-actions"><button type="button" class="text-button" id="back-to-balance">← Volver al reparto</button><span class="small-note">Una persona hace como máximo una tarea por fin de semana.</span></div>
+  </dialog>
 
   <dialog id="tasks-dialog" aria-labelledby="tasks-heading">
     <div class="dialog-heading"><div><p class="eyebrow">TAREAS DE LA CASA</p><h2 id="tasks-heading">Añadir una tarea</h2></div><button class="icon-button" id="close-tasks-dialog" aria-label="Cerrar tareas">×</button></div>

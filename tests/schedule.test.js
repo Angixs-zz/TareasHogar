@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { START_DATE, PEOPLE, STAIRS_ORDER, BATHROOM_ORDER, HALLWAY_ORDER, TASKS, addDays, generateSchedule, nextWeekend, scheduleThrough, calendarFile, suggestOrder, validateTasks } from '../schedule.js';
+import { START_DATE, PEOPLE, STAIRS_ORDER, BATHROOM_ORDER, HALLWAY_ORDER, TASKS, addDays, generateSchedule, nextWeekend, scheduleThrough, weeksInRange, countAssignments, calendarFile, suggestOrder, validateTasks } from '../schedule.js';
 
 test('las tres tareas empiezan con los turnos confirmados', () => {
   const weeks = generateSchedule(6, TASKS);
@@ -136,4 +136,43 @@ test('escapa comas, punto y coma y saltos de línea en el ICS', () => {
   const file = calendarFile(generateSchedule(1, allTasks), 'all', allTasks).replaceAll('\r\n ', '');
   assert.ok(file.includes('SUMMARY:Barrer\\, patio\\; frente ·'));
   assert.ok(file.includes('Línea uno\\nLínea dos'));
+});
+
+test('weeksInRange incluye los fines de semana que cruzan el rango', () => {
+  const weeks = generateSchedule(12, TASKS);
+  assert.deepEqual(weeksInRange(weeks, START_DATE, START_DATE).map((week) => week.date), ['2026-10-24']);
+  assert.deepEqual(weeksInRange(weeks, '2026-10-25', '2026-10-25').map((week) => week.date), ['2026-10-24']);
+  assert.deepEqual(weeksInRange(weeks, '2026-10-26', '2026-11-01').map((week) => week.date), ['2026-10-31']);
+  assert.deepEqual(weeksInRange(weeks, '2026-10-01', '2026-10-31').map((week) => week.date), ['2026-10-24', '2026-10-31']);
+  assert.deepEqual(weeksInRange(weeks, '2027-01-01', '2027-01-01'), []);
+  assert.deepEqual(weeksInRange(weeks, '2027-01-02', '2027-01-03').map((week) => week.date), ['2027-01-02']);
+});
+
+test('countAssignments cuenta por persona y tarea dentro del rango', () => {
+  const allWeeks = generateSchedule(60, TASKS);
+  const weeks = weeksInRange(allWeeks, START_DATE, addDays(START_DATE, 7 * 29));
+  assert.equal(weeks.length, 30);
+  const counts = countAssignments(weeks, TASKS);
+
+  for (const task of TASKS) {
+    const assigned = task.order.reduce((sum, id) => sum + counts[id][task.id], 0);
+    assert.equal(assigned, weeks.length, task.id);
+    for (const id of task.order) {
+      assert.ok(Math.abs(counts[id][task.id] - weeks.length / task.order.length) <= 1, `${task.id}/${id}`);
+    }
+  }
+  assert.equal(counts.fredy.stairs, 0);
+  for (const { id } of PEOPLE) {
+    const total = TASKS.reduce((sum, task) => sum + counts[id][task.id], 0);
+    const worked = weeks.filter((week) => Object.values(week.tasks).includes(id)).length;
+    assert.equal(total, worked, id);
+  }
+});
+
+test('el rango corto también cuenta un solo fin de semana sin inventar turnos', () => {
+  const weeks = weeksInRange(generateSchedule(3, TASKS), '2026-10-25', '2026-10-28');
+  assert.equal(weeks.length, 1);
+  const counts = countAssignments(weeks, TASKS);
+  const total = PEOPLE.reduce((sum, { id }) => sum + TASKS.reduce((inner, task) => inner + counts[id][task.id], 0), 0);
+  assert.equal(total, TASKS.length);
 });
