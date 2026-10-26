@@ -1,4 +1,4 @@
-import { START_DATE, PEOPLE, TASKS as DEFAULT_TASKS, person, addDays, nextWeekend, generateSchedule, scheduleThrough, calendarFile, suggestOrder, validateTasks } from './schedule.js';
+import { START_DATE, PEOPLE, TASKS as DEFAULT_TASKS, person, addDays, nextWeekend, generateSchedule, scheduleThrough, calendarFile, suggestOrder, validateTasks } from './schedule.js?v=20261026-3t';
 
 const $ = (selector) => document.querySelector(selector);
 const STORAGE_KEY = 'tareas-hogar-tareas';
