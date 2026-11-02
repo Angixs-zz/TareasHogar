@@ -38,6 +38,8 @@ Al pulsar **Ver perfil** se abre el detalle de esa persona: total de tareas, com
 
 ## Funciones
 
+- Panel lateral para seleccionar personas y tareas activas: recalcula turnos, reparto, filtros, avisos y exportación. Al excluir una persona se conserva el orden relativo de cada rotación; Fredy sigue fuera de escaleras. Las combinaciones imposibles se rechazan sin perder la anterior. Se puede restaurar la combinación original. Los cambios son **locales a este navegador**, no se sincronizan con el grupo y recalculan también fechas pasadas; para una combinación compartida permanente hay que modificar el código y publicarlo.
+
 - Responsables del fin de semana actual; el domingo conserva el turno del sábado.
 - Navegación mensual desde octubre de 2026 hasta diciembre de 2100.
 - Filtro por persona, con el contexto de todas las tareas de sus fines de semana.

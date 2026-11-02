@@ -87,6 +87,23 @@ test('se pueden añadir tareas nuevas sin duplicar personas', () => {
   }
 });
 
+test('combinaciones de personas y tareas preservan el orden y evitan choques', () => {
+  const people = ['angel', 'jessy', 'edgar', 'santiago'];
+  for (const enabled of [[TASKS[0]], [TASKS[1]], TASKS.slice(0, 2), TASKS.slice(1), TASKS]) {
+    const selected = enabled.map((task) => ({ ...task, order: task.order.filter((id) => people.includes(id)) }));
+    validateTasks(selected);
+    const weeks = generateSchedule(300, selected);
+    for (const week of weeks) {
+      assert.equal(Object.keys(week.tasks).length, selected.length);
+      assert.equal(new Set(Object.values(week.tasks)).size, selected.length);
+      for (const task of selected) assert.ok(task.order.includes(week.tasks[task.id]));
+    }
+  }
+  const bathroomOnly = generateSchedule(4, [TASKS[1]]);
+  assert.deepEqual(bathroomOnly.map((week) => week.tasks.bathroom), TASKS[1].order.slice(0, 4));
+  assert.throws(() => validateTasks(TASKS.map((task) => ({ ...task, order: task.order.filter((id) => ['angel', 'jessy'].includes(id)) }))), /al menos 3 personas/);
+});
+
 test('valida tareas imposibles antes de calcular', () => {
   assert.throws(() => validateTasks([]), /al menos una tarea/);
   assert.throws(() => validateTasks([...TASKS, { ...TASKS[0], id: 'extra1', name: 'Extra 1' }, { ...TASKS[0], id: 'extra2', name: 'Extra 2' }, { ...TASKS[0], id: 'extra3', name: 'Extra 3' }, { ...TASKS[0], id: 'extra4', name: 'Extra 4' }]), /sobraría alguna tarea/);

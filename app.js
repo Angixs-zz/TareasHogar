@@ -1,7 +1,8 @@
-import { START_DATE, PEOPLE, TASKS as DEFAULT_TASKS, person, addDays, nextWeekend, scheduleThrough, weeksInRange, countAssignments, calendarFile, suggestOrder, validateTasks } from './schedule.js?v=20261026-4p';
+import { START_DATE, PEOPLE, TASKS as DEFAULT_TASKS, person, addDays, nextWeekend, scheduleThrough, weeksInRange, countAssignments, calendarFile, suggestOrder, validateTasks } from './schedule.js?v=20261101-1';
 
 const $ = (selector) => document.querySelector(selector);
 const STORAGE_KEY = 'tareas-hogar-tareas';
+const CONFIG_KEY = 'tareas-hogar-combinacion-v1';
 const now = new Date();
 const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 const activeWeekend = nextWeekend(today);
@@ -46,8 +47,61 @@ const taskEmoji = (task) => EMOJIS[task.icon] ?? EMOJIS.generic;
 const findTask = (id) => tasks.find((task) => task.id === id);
 
 let customTasks = readCustomTasks();
-let tasks = buildTasks();
+let allTasks = buildTasks();
+let config = readConfig();
+let tasks = activeTasks(config);
 let upcomingWeeks = [];
+
+function readConfig() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CONFIG_KEY));
+    if (saved && Array.isArray(saved.people) && Array.isArray(saved.tasks)) {
+      const candidate = {
+        people: [...new Set(saved.people)].filter((id) => PEOPLE.some((item) => item.id === id)),
+        tasks: [...new Set(saved.tasks)].filter((id) => allTasks.some((item) => item.id === id)),
+      };
+      activeTasks(candidate);
+      return candidate;
+    }
+  } catch {}
+  return { people: PEOPLE.map(({ id }) => id), tasks: allTasks.map(({ id }) => id) };
+}
+
+function activeTasks(next) {
+  const included = allTasks.filter((task) => next.tasks.includes(task.id)).map((task) => ({
+    ...task,
+    order: task.order.filter((id) => next.people.includes(id)),
+  }));
+  if (next.people.length < included.length) throw new Error(`Se necesitan al menos ${included.length} personas para ${included.length} tareas sin repetir a nadie.`);
+  validateTasks(included);
+  return included;
+}
+
+function saveConfig() {
+  try { localStorage.setItem(CONFIG_KEY, JSON.stringify(config)); } catch {}
+}
+
+function renderConfiguration() {
+  $('#config-people-count').textContent = `${config.people.length}/${PEOPLE.length}`;
+  $('#config-task-count').textContent = `${config.tasks.length}/${allTasks.length}`;
+  $('#config-people').innerHTML = PEOPLE.map(({ id, name }) => `<label class="config-option"><input type="checkbox" data-config-person="${id}" ${config.people.includes(id) ? 'checked' : ''}>${avatar(id)}<span>${escapeHtml(name)}</span><span class="config-check" aria-hidden="true">✓</span></label>`).join('');
+  $('#config-tasks').innerHTML = allTasks.map((task) => `<label class="config-option"><input type="checkbox" data-config-task="${escapeHtml(task.id)}" ${config.tasks.includes(task.id) ? 'checked' : ''}><span class="config-task-icon" aria-hidden="true">${taskIcon(task)}</span><span>${escapeHtml(task.name)}</span><span class="config-check" aria-hidden="true">✓</span></label>`).join('');
+}
+
+function updateConfig(candidate) {
+  try {
+    const nextTasks = activeTasks(candidate);
+    config = candidate;
+    tasks = nextTasks;
+    saveConfig();
+    renderConfiguration();
+    renderAll();
+    $('#config-status').textContent = 'Combinación actualizada.';
+  } catch (error) {
+    renderConfiguration();
+    $('#config-status').textContent = error.message;
+  }
+}
 
 function readCustomTasks() {
   try {
@@ -246,7 +300,7 @@ function renderBalance() {
   const counts = countAssignments(weeks, tasks);
   const expected = (task) => weeks.length / task.order.length;
   const head = `<thead><tr><th scope="col">Persona</th>${tasks.map((task) => `<th scope="col"><span>${escapeHtml(task.short)}</span><small>~${formatNumber(expected(task))}</small></th>`).join('')}<th scope="col">Total</th><th scope="col"></th></tr></thead>`;
-  const body = `<tbody>${PEOPLE.map(({ id, name }) => {
+  const body = `<tbody>${PEOPLE.filter(({ id }) => config.people.includes(id)).map(({ id, name }) => {
     const total = tasks.reduce((sum, task) => sum + counts[id][task.id], 0);
     return `<tr><th scope="row"><span class="person-cell">${avatar(id)}${escapeHtml(name)}</span></th>${tasks.map((task) => {
       const count = counts[id][task.id];
@@ -340,7 +394,7 @@ function daysBetween(a, b) {
 
 function renderNextTurns() {
   const grid = $('#next-turns-grid');
-  grid.innerHTML = PEOPLE.map(({ id, name, color, initials }) => {
+  grid.innerHTML = PEOPLE.filter(({ id }) => config.people.includes(id)).map(({ id, name, color, initials }) => {
     const week = upcomingWeeks.find((item) => Object.values(item.tasks).includes(id));
     if (!week) return '';
     const taskId = Object.keys(week.tasks).find((key) => week.tasks[key] === id);
@@ -369,7 +423,7 @@ function renderTaskPeopleOptions() {
 }
 
 function renderTaskList() {
-  $('#task-list').innerHTML = tasks.map((task) => `<div class="task-list-row"><span class="task-icon task-icon-small ${task.icon}" aria-hidden="true">${taskIcon(task)}</span><div class="task-list-copy"><strong>${escapeHtml(task.name)}</strong><small>${escapeHtml(task.order.map((id) => person(id).name).join(' → '))}</small></div>${task.custom ? `<button type="button" class="remove-task" data-remove="${escapeHtml(task.id)}" aria-label="Quitar ${escapeHtml(task.name)}">Quitar</button>` : '<span class="default-tag">Original</span>'}</div>`).join('');
+  $('#task-list').innerHTML = allTasks.map((task) => `<div class="task-list-row"><span class="task-icon task-icon-small ${task.icon}" aria-hidden="true">${taskIcon(task)}</span><div class="task-list-copy"><strong>${escapeHtml(task.name)}</strong><small>${escapeHtml(task.order.map((id) => person(id).name).join(' → '))}</small></div>${task.custom ? `<button type="button" class="remove-task" data-remove="${escapeHtml(task.id)}" aria-label="Quitar ${escapeHtml(task.name)}">Quitar</button>` : '<span class="default-tag">Original</span>'}</div>`).join('');
   $('#reset-tasks').hidden = customTasks.length === 0;
 }
 
@@ -387,12 +441,18 @@ function uniqueTaskId(name) {
   const base = `custom-${slugify(name) || 'tarea'}`;
   let id = base;
   let suffix = 2;
-  while (tasks.some((task) => task.id === id)) id = `${base}-${suffix++}`;
+  while (allTasks.some((task) => task.id === id)) id = `${base}-${suffix++}`;
   return id;
 }
 
 function renderAll() {
+  const previousShareDate = $('#share-weekend').value;
   refreshUpcomingWeeks();
+  $('#share-weekend').replaceChildren(...upcomingWeeks.map((week) => new Option(`${weekendRange(week.date)} de ${addDays(week.date, 1).slice(0, 4)}`, week.date)));
+  if (upcomingWeeks.some((week) => week.date === previousShareDate)) $('#share-weekend').value = previousShareDate;
+  $('#person-filter').replaceChildren(new Option('Todos en casa', 'all'), ...PEOPLE.filter(({ id }) => config.people.includes(id)).map(({ id, name }) => new Option(name, id)));
+  if (!config.people.includes(selectedPerson)) selectedPerson = 'all';
+  $('#person-filter').value = selectedPerson;
   renderUpcoming();
   renderCalendar();
   renderReminder();
@@ -408,7 +468,7 @@ $('#task-form').addEventListener('submit', (event) => {
   const icon = $('#task-icon').value;
   const participants = [...document.querySelectorAll('input[name="participants"]:checked')].map((input) => input.value);
   if (!name) return setTaskMessage('Escribe un nombre para la tarea.', 'error');
-  if (tasks.some((task) => task.name.toLowerCase() === name.toLowerCase())) return setTaskMessage('Ya hay una tarea con ese nombre.', 'error');
+  if (allTasks.some((task) => task.name.toLowerCase() === name.toLowerCase())) return setTaskMessage('Ya hay una tarea con ese nombre.', 'error');
   if (participants.length === 0) return setTaskMessage('Elige al menos una persona para la rotación.', 'error');
   const task = {
     id: uniqueTaskId(name),
@@ -420,13 +480,19 @@ $('#task-form').addEventListener('submit', (event) => {
     custom: true,
   };
   try {
-    validateTasks([...tasks, task]);
+    validateTasks([...allTasks, task]);
+    if (config.people.length < tasks.length + 1) throw new Error('Necesitas activar más personas antes de añadir esta tarea.');
+    validateTasks([...tasks, { ...task, order: task.order.filter((id) => config.people.includes(id)) }]);
   } catch (error) {
     return setTaskMessage(error.message, 'error');
   }
-  tasks = [...tasks, task];
   customTasks = [...customTasks, task];
+  allTasks = buildTasks();
+  config = { ...config, tasks: [...config.tasks, task.id] };
+  tasks = activeTasks(config);
   saveCustomTasks();
+  saveConfig();
+  renderConfiguration();
   renderAll();
   renderTaskList();
   $('#task-form').reset();
@@ -438,7 +504,12 @@ $('#task-list').addEventListener('click', (event) => {
   if (!button) return;
   customTasks = customTasks.filter((task) => task.id !== button.dataset.remove);
   saveCustomTasks();
-  tasks = buildTasks();
+  allTasks = buildTasks();
+  const remaining = config.tasks.filter((id) => id !== button.dataset.remove);
+  config = { ...config, tasks: remaining.length ? remaining : DEFAULT_TASKS.map(({ id }) => id) };
+  tasks = activeTasks(config);
+  saveConfig();
+  renderConfiguration();
   renderAll();
   renderTaskList();
   setTaskMessage('Tarea quitada. El calendario ya está recalculado.', 'success');
@@ -447,13 +518,28 @@ $('#task-list').addEventListener('click', (event) => {
 $('#reset-tasks').addEventListener('click', () => {
   customTasks = [];
   try { localStorage.removeItem(STORAGE_KEY); } catch {}
-  tasks = buildTasks();
+  allTasks = buildTasks();
+  const remaining = config.tasks.filter((id) => allTasks.some((task) => task.id === id));
+  config = { ...config, tasks: remaining.length ? remaining : DEFAULT_TASKS.map(({ id }) => id) };
+  tasks = activeTasks(config);
+  saveConfig();
+  renderConfiguration();
   renderAll();
   renderTaskList();
   setTaskMessage('Tareas originales restauradas.', 'success');
 });
 
-for (const { id, name } of PEOPLE) $('#person-filter').add(new Option(name, id));
+$('#config-people').addEventListener('change', (event) => {
+  const id = event.target.dataset.configPerson;
+  if (!id) return;
+  updateConfig({ ...config, people: event.target.checked ? [...config.people, id] : config.people.filter((value) => value !== id) });
+});
+$('#config-tasks').addEventListener('change', (event) => {
+  const id = event.target.dataset.configTask;
+  if (!id) return;
+  updateConfig({ ...config, tasks: event.target.checked ? [...config.tasks, id] : config.tasks.filter((value) => value !== id) });
+});
+$('#config-reset').addEventListener('click', () => updateConfig({ people: PEOPLE.map(({ id }) => id), tasks: allTasks.map(({ id }) => id) }));
 $('#person-filter').addEventListener('change', (event) => { selectedPerson = event.target.value; renderCalendar(); });
 $('#previous-month').addEventListener('click', () => moveMonth(-1));
 $('#next-month').addEventListener('click', () => moveMonth(1));
@@ -529,10 +615,7 @@ function applyTheme() {
 }
 
 renderTaskPeopleOptions();
-refreshUpcomingWeeks();
-for (const week of upcomingWeeks) {
-  $('#share-weekend').add(new Option(`${weekendRange(week.date)} de ${addDays(week.date, 1).slice(0, 4)}`, week.date));
-}
+renderConfiguration();
 $('#share-weekend').addEventListener('change', renderReminder);
 $('#copy-reminder').addEventListener('click', async () => {
   try {

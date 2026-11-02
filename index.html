@@ -14,8 +14,8 @@
     document.documentElement.dataset.theme = ['light', 'dark'].includes(savedTheme)
       ? savedTheme : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   </script>
-  <link rel="stylesheet" href="./styles.css?v=20261026-4p">
-  <script type="module" src="./app.js?v=20261026-4p"></script>
+  <link rel="stylesheet" href="./styles.css?v=20261101-1">
+  <script type="module" src="./app.js?v=20261101-1"></script>
 </head>
 <body>
   <header class="site-header">
@@ -26,6 +26,8 @@
   </header>
 
   <main>
+    <div class="workspace">
+    <div class="workspace-content">
     <section class="intro">
       <div><p class="eyebrow"><span class="live-dot"></span> NUESTRO CALENDARIO COMPARTIDO</p><h1>Una casa limpia.<br><span>Un turno a la vez.</span></h1><p class="intro-copy">Aquí sabemos a quién le toca. Nos repartimos las tareas<br class="desktop-break"> del fin de semana para que todo esté en orden.</p></div>
       <div class="house-art" aria-hidden="true"><svg viewBox="0 0 260 205" fill="none"><ellipse cx="132" cy="185" rx="105" ry="12" fill="#e7e9dc"/><path d="M64 92 137 38 208 92v88H64Z" fill="#e3e8d3"/><path d="m45 96 92-70 91 70" stroke="#576c42" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/><path d="M155 180v-57h31v57" fill="#99aa7b"/><rect x="85" y="100" width="43" height="43" rx="7" fill="#fbfcf5"/><path d="M106.5 100v43M85 121.5h43" stroke="#b5c39e" stroke-width="3"/><path d="m54 163 20-42M42 172l15-26 20 10-12 26" fill="#d7b47f"/><path d="m57 146 20 10" stroke="#826747" stroke-width="4"/><path d="M222 40v20m-10-10h20M38 63v12m-6-6h12" stroke="#9cae7f" stroke-width="3" stroke-linecap="round"/><circle cx="203" cy="24" r="3" fill="#d7b47f"/><path d="M215 179v-24m0 12c-13 0-17-10-17-10 13-3 17 10 17 10Zm0-8s0-14 13-17c2 13-13 17-13 17Z" stroke="#7d9266" stroke-width="3" stroke-linejoin="round"/></svg><span class="art-note">Entre todos, se siente hogar.</span></div>
@@ -48,6 +50,17 @@
       <div class="calendar-actions"><p>El turno cubre sábado y domingo. Elijan el día que mejor les venga.</p><div><button class="text-button" id="download-button"><span aria-hidden="true">↓</span> Descargar mes (.ics)</button><button class="text-button" id="print-button"><span aria-hidden="true">▤</span> Imprimir</button></div></div>
       <p class="download-hint" id="download-status" role="status"></p>
     </section>
+
+    </div>
+    <aside class="configuration" aria-labelledby="configuration-heading">
+      <div class="config-heading"><span class="config-symbol" aria-hidden="true">☷</span><p class="eyebrow">TU COMBINACIÓN</p><h2 id="configuration-heading">Organiza los turnos</h2><p>Elige las personas y las tareas de esta rotación. El calendario se actualiza al instante.</p></div>
+      <fieldset class="config-group"><legend>Personas que participan <span id="config-people-count"></span></legend><div id="config-people" class="config-people"></div></fieldset>
+      <fieldset class="config-group"><legend>Tareas incluidas <span id="config-task-count"></span></legend><div id="config-tasks" class="config-tasks"></div></fieldset>
+      <p id="config-status" class="config-status" role="status" aria-live="polite"></p>
+      <button type="button" id="config-reset" class="config-reset">↶ &nbsp;Restaurar combinación original</button>
+      <p class="config-disclaimer">Estos ajustes solo se guardan en este navegador. Para compartir la misma combinación con todos, habría que publicarla en el sitio.</p>
+    </aside>
+    </div>
 
     <section class="share-section" aria-labelledby="share-heading">
       <div class="section-heading"><div><p class="eyebrow">UN MENSAJE Y TODOS ENTERADOS</p><h2 id="share-heading">Aviso listo para el grupo</h2></div><span class="small-note">Menos «¿a quién le toca?»</span></div>
@@ -76,7 +89,7 @@
       <div class="section-heading"><div><p class="eyebrow">CLARO Y SIN ENREDOS</p><h2 id="rules-heading">Así nos organizamos</h2></div><span class="small-note" id="rules-note">6 personas · 3 tareas · cada fin de semana</span></div>
       <div class="rules-grid">
         <article class="rule-card"><span class="rule-number">01 / LAS ROTACIONES</span><h3>Cada quien tiene su turno</h3><div id="rotation-list"></div></article>
-        <article class="rule-card"><span class="rule-number">02 / SIN TAREAS DOBLES</span><h3>Si coinciden, se combinan</h3><p>Si a una persona le tocan dos tareas el mismo fin de semana, una de ellas se adelanta: la siguiente persona de esa rotación la cubre y la persona desplazada recupera su turno el siguiente fin de semana libre.</p><div class="swap-example"><span>Una tarea</span><span aria-hidden="true">⇄</span><span>La siguiente</span></div><p>Nadie pierde ni suma un turno: una persona se adelanta y la otra lo hace después. El calendario recalcula la combinación completa cada vez que se añade una tarea.</p></article>
+        <article class="rule-card"><span class="rule-number">02 / SIN TAREAS DOBLES</span><h3>Si coinciden, se combinan</h3><p>Si a una persona le tocan dos tareas el mismo fin de semana, una de ellas se adelanta: la siguiente persona de esa rotación la cubre y la persona desplazada recupera su turno el siguiente fin de semana libre.</p><div class="swap-example"><span>Una tarea</span><span aria-hidden="true">⇄</span><span>La siguiente</span></div><p>Nadie pierde ni suma un turno: una persona se adelanta y la otra lo hace después. Al cambiar la combinación se recalcula el calendario completo, también los turnos pasados.</p></article>
         <article class="rule-card fairness-card"><span class="rule-number">03 / UN REPARTO JUSTO</span><h3>Todos aportamos</h3><p id="fairness-copy">Cada tarea rota solo entre quienes participan. El reparto se mide por tarea.</p><p>Quien no está en una rotación no recibe turnos de esa tarea. Puedes añadir tareas nuevas y el reparto se recalcula sin tareas dobles.</p><div class="start-note"><span aria-hidden="true">⚑</span> Inicio del calendario<br><strong>24 de octubre de 2026</strong></div></article>
       </div>
     </section>
